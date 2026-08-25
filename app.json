@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "PulseFit",
+    "slug": "pulsefit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "pulsefit",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pulsefit.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PulseFit uses the camera to scan barcodes on supplements and food products so you can log them quickly.",
+        "NSPhotoLibraryUsageDescription": "PulseFit may save progress photos to your library."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "com.pulsefit.app",
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermissionText": "PulseFit uses the camera to scan barcodes on supplements and food products."
+        }
+      ],
+      "expo-system-ui"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "pulsefit-local"
+      }
+    },
+    "owner": "pulsefit"
+  }
+}

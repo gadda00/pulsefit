@@ -1,0 +1,10 @@
+{
+  "extends": "expo",
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "warn",
+    "react/no-unescaped-entities": "off",
+    "@typescript-eslint/quotes": "off",
+    "@typescript-eslint/no-var-requires": "off"
+  },
+  "ignorePatterns": ["/node_modules/*", "/.expo/*", "/dist/*", "/coverage/*"]
+}
