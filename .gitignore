@@ -43,6 +43,7 @@ yarn-error.*
 .env.local
 .env.*.local
 
-# EAS
-eas.json
+# EAS secrets (eas.json itself IS committed — it contains build profiles only)
+eas-secrets.json
+
 *.tsbuildinfo
