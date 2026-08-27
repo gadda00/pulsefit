@@ -60,3 +60,24 @@ if [ -f "$RNGP_KTS" ]; then
 fi
 
 echo "[patches] Done."
+
+# 4. Pin Gradle wrapper to 8.6 (compatible with AGP 8.2.x, avoids the
+#    androidJdkImage duplicate configuration issue present in Gradle 8.7+).
+WRAPPER_PROPS="android/gradle/wrapper/gradle-wrapper.properties"
+if [ -f "$WRAPPER_PROPS" ]; then
+  if grep -q "gradle-8.7\|gradle-8.8\|gradle-8.9\|gradle-8.10\|gradle-8.11" "$WRAPPER_PROPS"; then
+    sed -i 's|gradle-8\.[0-9]\+\(-all\|-bin\)\.zip|gradle-8.6-all.zip|' "$WRAPPER_PROPS"
+    echo "[patches] Pinned Gradle wrapper to 8.6"
+  fi
+fi
+
+# 5. Pin AGP version to 8.2.1 in android/build.gradle (avoids androidJdkImage issue).
+ANDROID_BUILD_GRADLE="android/build.gradle"
+if [ -f "$ANDROID_BUILD_GRADLE" ]; then
+  if grep -q "classpath('com.android.tools.build:gradle')\$" "$ANDROID_BUILD_GRADLE" || \
+     grep -q "classpath(\"com.android.tools.build:gradle\")\$" "$ANDROID_BUILD_GRADLE"; then
+    sed -i "s|classpath('com.android.tools.build:gradle')|classpath('com.android.tools.build:gradle:8.2.1')|" "$ANDROID_BUILD_GRADLE"
+    sed -i 's|classpath("com.android.tools.build:gradle")|classpath("com.android.tools.build:gradle:8.2.1")|' "$ANDROID_BUILD_GRADLE"
+    echo "[patches] Pinned AGP to 8.2.1"
+  fi
+fi

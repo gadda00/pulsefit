@@ -39,6 +39,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/fix-gradle-versions",
       "expo-updates",
       "expo-router",
       [
