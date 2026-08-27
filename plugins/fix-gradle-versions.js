@@ -199,28 +199,34 @@ function patchAndroidBuildGradle(projectRoot) {
     "classpath('com.android.tools.build:gradle:8.2.1')"
   );
   // Add -Xskip-metadata-version-check to allprojects Kotlin compile args
-  // to suppress "compiled with incompatible version of Kotlin" errors
-  // (expo-modules-core pulls kotlin-stdlib 2.1.x but we compile with 1.9.x)
   if (!updated.includes('Xskip-metadata-version-check')) {
-    // Insert a gradle.projectsEvaluated block that adds the flag to all KotlinCompile tasks
     const skipMetadataBlock = `
 // Patched by plugins/fix-gradle-versions.js:
-// Suppress Kotlin metadata version mismatch errors (expo-modules-core
-// depends on kotlin-stdlib 2.1.x but we compile with Kotlin 1.9.x).
 allprojects {
   tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
       freeCompilerArgs += ['-Xskip-metadata-version-check']
     }
   }
+  // Force androidx.core to 1.13.1 (compatible with compileSdk 34).
+  // Some transitive deps pull 1.17.0 which requires compileSdk 36.
+  configurations.all {
+    resolutionStrategy {
+      force 'androidx.core:core:1.13.1'
+      force 'androidx.core:core-ktx:1.13.1'
+      force 'androidx.appcompat:appcompat:1.6.1'
+      force 'androidx.activity:activity:1.8.2'
+      force 'androidx.fragment:fragment:1.6.2'
+    }
+  }
 }
 `;
     updated += skipMetadataBlock;
-    console.log('[fix-gradle-versions] Added -Xskip-metadata-version-check to all KotlinCompile tasks');
+    console.log('[fix-gradle-versions] Added -Xskip-metadata-version-check + androidx.core force');
   }
   if (updated !== content) {
     fs.writeFileSync(buildGradle, updated);
-    console.log('[fix-gradle-versions] Pinned AGP to 8.2.1 + added skip-metadata-version-check');
+    console.log('[fix-gradle-versions] Patched android/build.gradle');
   }
 }
 
