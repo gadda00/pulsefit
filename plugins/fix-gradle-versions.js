@@ -63,26 +63,58 @@ function patchExpoModulesCore(projectRoot) {
   // androidJdkImage duplicate configuration error).
   const projectConfigPath = path.join(EMC_DIR, 'src/main/kotlin/expo/modules/plugin/ProjectConfiguration.kt');
   if (fs.existsSync(projectConfigPath)) {
-    const content = fs.readFileSync(projectConfigPath, 'utf8');
+    let content = fs.readFileSync(projectConfigPath, 'utf8');
+    let modified = false;
+
+    // 1. Skip com.android.library on app projects
     if (content.includes('plugins.apply("com.android.library")') &&
         !content.includes('plugins.hasPlugin("com.android.application")')) {
-      const patched = content.replace(
+      content = content.replace(
         'if (!plugins.hasPlugin("com.android.library")) {\n    plugins.apply("com.android.library")\n  }',
         'if (!plugins.hasPlugin("com.android.library") && !plugins.hasPlugin("com.android.application")) {\n    plugins.apply("com.android.library")\n  }'
       );
-      if (patched !== content) {
-        fs.writeFileSync(projectConfigPath, patched);
-        console.log('[fix-gradle-versions] Patched ProjectConfiguration.kt to skip com.android.library on app projects');
-      }
+      modified = true;
+      console.log('[fix-gradle-versions] Patched ProjectConfiguration.kt to skip com.android.library on app projects');
+    }
+
+    // 2. Skip pika plugin (pika-compiler 0.3.2 doesn't have a Kotlin 1.9.x build,
+    //    causing dependency resolution to fail. Pika is an optimization plugin
+    //    and is safe to skip.)
+    if (content.includes('plugins.apply("io.github.lukmccall.pika")') &&
+        !content.includes('// Patched: skip pika')) {
+      // Comment out the entire applyPikaPlugin body and configurePika body
+      content = content.replace(
+        /internal fun Project\.applyPikaPlugin\(\) \{[\s\S]*?^\}/m,
+        `internal fun Project.applyPikaPlugin() {
+  // Patched: pika plugin skipped (pika-compiler 0.3.2 has no Kotlin 1.9.x build)
+  // Pika is an optional compile-time optimization plugin.
+}`
+      );
+      content = content.replace(
+        /internal fun Project\.configurePika\(shouldBeEnabled: Boolean = true\) \{[\s\S]*?^\}/m,
+        `internal fun Project.configurePika(shouldBeEnabled: Boolean = true) {
+  // Patched: pika plugin skipped (no-op)
+}`
+      );
+      modified = true;
+      console.log('[fix-gradle-versions] Patched ProjectConfiguration.kt to skip pika plugin');
+    }
+
+    if (modified) {
+      fs.writeFileSync(projectConfigPath, content);
     }
   }
 
   // Also patch build.gradle.kts to add gradle-kotlin-dsl jar dependency
+  // and remove pika dependency (no Kotlin 1.9.x build available)
   const buildKts = path.join(EMC_DIR, 'build.gradle.kts');
   if (fs.existsSync(buildKts)) {
     const content = fs.readFileSync(buildKts, 'utf8');
-    if (!content.includes('gradle-kotlin-dsl')) {
-      const patched = content.replace(
+    let patched = content;
+
+    // Add gradle-kotlin-dsl jar
+    if (!patched.includes('gradle-kotlin-dsl')) {
+      patched = patched.replace(
         'implementation(gradleApi())\n  compileOnly("com.android.tools.build:gradle:8.5.0")',
         `implementation(gradleApi())
   // Patched by plugins/fix-gradle-versions.js: add gradle-kotlin-dsl jar
@@ -93,8 +125,20 @@ function patchExpoModulesCore(projectRoot) {
   }
   compileOnly("com.android.tools.build:gradle:8.5.0")`
       );
+      console.log('[fix-gradle-versions] Patched EMC build.gradle.kts (added gradle-kotlin-dsl jar)');
+    }
+
+    // Remove pika dependency
+    if (patched.includes('io.github.lukmccall.pika:pika-gradle:0.3.2')) {
+      patched = patched.replace(
+        '  implementation("io.github.lukmccall.pika:pika-gradle:0.3.2")\n',
+        '  // Patched: removed pika-gradle dependency (no Kotlin 1.9.x build)\n'
+      );
+      console.log('[fix-gradle-versions] Removed pika-gradle dependency from EMC build.gradle.kts');
+    }
+
+    if (patched !== content) {
       fs.writeFileSync(buildKts, patched);
-      console.log('[fix-gradle-versions] Patched EMC build.gradle.kts');
     }
   }
 }
