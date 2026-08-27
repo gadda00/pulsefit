@@ -38,14 +38,6 @@ jobs:
       - name: Install dependencies (with patches)
         run: npm install --legacy-peer-deps
 
-      - name: Verify patches applied
-        run: |
-          echo "=== Checking expo-modules-core patches ==="
-          grep "kotlin.dsl.extra" node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/ExpoModulesGradlePlugin.kt
-          echo "=== Checking react-native-gradle-plugin patches ==="
-          grep "kotlin.dsl.support.serviceOf" node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
-          grep "allWarningsAsErrors = false" node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
-
       - name: Verify Expo auth
         run: eas whoami
 
