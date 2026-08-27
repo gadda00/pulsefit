@@ -58,6 +58,25 @@ function patchExpoModulesCore(projectRoot) {
     }
   }
 
+  // Patch ProjectConfiguration.kt to skip applying com.android.library
+  // when the project already has com.android.application (avoids the
+  // androidJdkImage duplicate configuration error).
+  const projectConfigPath = path.join(EMC_DIR, 'src/main/kotlin/expo/modules/plugin/ProjectConfiguration.kt');
+  if (fs.existsSync(projectConfigPath)) {
+    const content = fs.readFileSync(projectConfigPath, 'utf8');
+    if (content.includes('plugins.apply("com.android.library")') &&
+        !content.includes('plugins.hasPlugin("com.android.application")')) {
+      const patched = content.replace(
+        'if (!plugins.hasPlugin("com.android.library")) {\n    plugins.apply("com.android.library")\n  }',
+        'if (!plugins.hasPlugin("com.android.library") && !plugins.hasPlugin("com.android.application")) {\n    plugins.apply("com.android.library")\n  }'
+      );
+      if (patched !== content) {
+        fs.writeFileSync(projectConfigPath, patched);
+        console.log('[fix-gradle-versions] Patched ProjectConfiguration.kt to skip com.android.library on app projects');
+      }
+    }
+  }
+
   // Also patch build.gradle.kts to add gradle-kotlin-dsl jar dependency
   const buildKts = path.join(EMC_DIR, 'build.gradle.kts');
   if (fs.existsSync(buildKts)) {
