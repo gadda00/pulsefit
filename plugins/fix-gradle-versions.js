@@ -154,22 +154,18 @@ function patchExpoModulesAutolinking(projectRoot) {
     return;
   }
   const content = fs.readFileSync(autolinkingScript, 'utf8');
-  // Look for the plugin application loop and add a filter
   const search = 'project.plugins.apply(modulePlugin.id)';
-  const replace = `if (modulePlugin.id == 'com.android.library' && project.plugins.hasPlugin('com.android.application')) { continue }\\n          project.plugins.apply(modulePlugin.id)`;
-  if (content.includes(search) && !content.includes('com.android.application')) {
-    // The string 'com.android.application' already appears elsewhere, so use a more specific marker
-    console.warn('[fix-gradle-versions] autolinking script already patched or has different structure');
-    return;
-  }
-  if (content.includes(search) && !content.includes("modulePlugin.id == 'com.android.library'")) {
-    // Insert the filter just before the apply call
+  // Only patch if the search string exists AND we haven't already patched it
+  // (check for our marker comment to avoid double-patching)
+  if (content.includes(search) && !content.includes('Skipping com.android.library on app project')) {
     const patched = content.replace(
       'project.plugins.apply(modulePlugin.id)',
       "if (modulePlugin.id == 'com.android.library' && project.plugins.hasPlugin('com.android.application')) {\n            println \"  Skipping com.android.library on app project (avoids androidJdkImage duplicate)\"\n            continue\n          }\n          project.plugins.apply(modulePlugin.id)"
     );
     fs.writeFileSync(autolinkingScript, patched);
     console.log('[fix-gradle-versions] Patched autolinking to skip com.android.library on app project');
+  } else {
+    console.log('[fix-gradle-versions] autolinking script already patched (or different structure)');
   }
 }
 
