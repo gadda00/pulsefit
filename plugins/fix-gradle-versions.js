@@ -135,6 +135,44 @@ function patchAndroidBuildGradle(projectRoot) {
   }
 }
 
+/**
+ * Patch expo-modules-autolinking to skip applying com.android.library to
+ * the :app project. The autolinking script applies every module's plugin to
+ * every project that has com.android.application — but com.android.library
+ * conflicts with com.android.application (both create androidJdkImage).
+ *
+ * The fix: filter out com.android.library from the list of plugins applied
+ * to app projects.
+ */
+function patchExpoModulesAutolinking(projectRoot) {
+  const autolinkingScript = path.join(
+    projectRoot,
+    'node_modules/expo-modules-autolinking/scripts/android/autolinking_implementation.gradle'
+  );
+  if (!fs.existsSync(autolinkingScript)) {
+    console.warn('[fix-gradle-versions] autolinking_implementation.gradle not found');
+    return;
+  }
+  const content = fs.readFileSync(autolinkingScript, 'utf8');
+  // Look for the plugin application loop and add a filter
+  const search = 'project.plugins.apply(modulePlugin.id)';
+  const replace = `if (modulePlugin.id == 'com.android.library' && project.plugins.hasPlugin('com.android.application')) { continue }\\n          project.plugins.apply(modulePlugin.id)`;
+  if (content.includes(search) && !content.includes('com.android.application')) {
+    // The string 'com.android.application' already appears elsewhere, so use a more specific marker
+    console.warn('[fix-gradle-versions] autolinking script already patched or has different structure');
+    return;
+  }
+  if (content.includes(search) && !content.includes("modulePlugin.id == 'com.android.library'")) {
+    // Insert the filter just before the apply call
+    const patched = content.replace(
+      'project.plugins.apply(modulePlugin.id)',
+      "if (modulePlugin.id == 'com.android.library' && project.plugins.hasPlugin('com.android.application')) {\n            println \"  Skipping com.android.library on app project (avoids androidJdkImage duplicate)\"\n            continue\n          }\n          project.plugins.apply(modulePlugin.id)"
+    );
+    fs.writeFileSync(autolinkingScript, patched);
+    console.log('[fix-gradle-versions] Patched autolinking to skip com.android.library on app project');
+  }
+}
+
 module.exports = function (config) {
   return withDangerousMod(config, [
     'android',
@@ -145,6 +183,7 @@ module.exports = function (config) {
       patchReactNativeGradlePlugin(projectRoot);
       patchGradleWrapper(projectRoot);
       patchAndroidBuildGradle(projectRoot);
+      patchExpoModulesAutolinking(projectRoot);
       console.log('[fix-gradle-versions] All patches applied.');
       return config;
     },
