@@ -1,0 +1,98 @@
+name: Build Android APK
+
+# Triggered manually from the GitHub Actions tab ("Run workflow" button),
+# or automatically on pushes to main if you uncomment the [push] trigger below.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (preview = APK, production = AAB)"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+  # push:
+  #   branches: [main]
+
+jobs:
+  build:
+    name: Build APK via EAS
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Verify Expo auth
+        run: eas whoami
+
+      - name: Build APK
+        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive --no-wait
+        id: build
+
+      - name: Wait for build to complete
+        run: |
+          # Get the latest build ID for this project
+          BUILD_ID=$(eas build:list --platform android --limit 1 --json --non-interactive | jq -r '.[0].id')
+          echo "Tracking build: $BUILD_ID"
+          echo "Build URL: https://expo.dev/accounts/vhjvfcvs-team/projects/project/builds/$BUILD_ID"
+
+          # Wait for the build to finish (polls every 30 seconds)
+          while true; do
+            STATUS=$(eas build:view "$BUILD_ID" --json --non-interactive | jq -r '.status')
+            echo "Current status: $STATUS"
+            if [ "$STATUS" = "finished" ]; then
+              echo "Build finished successfully!"
+              break
+            elif [ "$STATUS" = "errored" ] || [ "$STATUS" = "canceled" ]; then
+              echo "Build failed with status: $STATUS"
+              exit 1
+            fi
+            sleep 30
+          done
+
+          # Save the build ID for the next step
+          echo "$BUILD_ID" > build_id.txt
+
+      - name: Download APK
+        run: |
+          BUILD_ID=$(cat build_id.txt)
+          APK_URL=$(eas build:view "$BUILD_ID" --json --non-interactive | jq -r '.artifacts.buildUrl')
+          echo "Downloading APK from: $APK_URL"
+          mkdir -p artifacts
+          curl -L -o artifacts/PulseFit.apk "$APK_URL"
+          ls -lh artifacts/PulseFit.apk
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PulseFit-apk
+          path: artifacts/PulseFit.apk
+          retention-days: 90
+
+      - name: Summary
+        run: |
+          echo "## APK Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the APK from the [workflow run artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Or use the Expo Go link to test without installing the APK:" >> $GITHUB_STEP_SUMMARY
+          echo "https://expo.dev/accounts/vhjvfcvs-team/projects/project/updates" >> $GITHUB_STEP_SUMMARY

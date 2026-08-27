@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PulseFit",
-    "slug": "pulsefit",
+    "slug": "project",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -26,7 +26,12 @@
         "backgroundColor": "#0A0A0A"
       },
       "package": "com.pulsefit.app",
-      "permissions": ["android.permission.CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +39,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-updates",
       "expo-router",
       [
         "expo-camera",
@@ -51,9 +57,15 @@
         "origin": false
       },
       "eas": {
-        "projectId": "pulsefit-local"
+        "projectId": "9f7fd0b4-8a55-460b-bbe7-555850fc0fce"
       }
     },
-    "owner": "pulsefit"
+    "owner": "vhjvfcvs-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9f7fd0b4-8a55-460b-bbe7-555850fc0fce"
+    }
   }
 }
