@@ -179,10 +179,19 @@ function patchExpoModulesAutolinking(projectRoot) {
   if (content.includes(search) && !content.includes('Skipping com.android.library on app project')) {
     const patched = content.replace(
       'project.plugins.apply(modulePlugin.id)',
-      "if (modulePlugin.id == 'com.android.library' && project.plugins.hasPlugin('com.android.application')) {\n            println \"  Skipping com.android.library on app project (avoids androidJdkImage duplicate)\"\n            continue\n          }\n          project.plugins.apply(modulePlugin.id)"
+      `// Patched by plugins/fix-gradle-versions.js:
+          // Skip plugins that are meant for library projects only (not the app project).
+          // com.android.library conflicts with com.android.application (androidJdkImage duplicate).
+          // expo-module-gradle-plugin expects LibraryExtension which doesn't exist on app projects.
+          if (project.plugins.hasPlugin('com.android.application') &&
+              (modulePlugin.id == 'com.android.library' || modulePlugin.id == 'expo-module-gradle-plugin')) {
+            println "  Skipping \${modulePlugin.id} on app project (incompatible with com.android.application)"
+            continue
+          }
+          project.plugins.apply(modulePlugin.id)`
     );
     fs.writeFileSync(autolinkingScript, patched);
-    console.log('[fix-gradle-versions] Patched autolinking to skip com.android.library on app project');
+    console.log('[fix-gradle-versions] Patched autolinking to skip library-only plugins on app project');
   } else {
     console.log('[fix-gradle-versions] autolinking script already patched (or different structure)');
   }
