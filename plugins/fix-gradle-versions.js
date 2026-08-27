@@ -82,6 +82,11 @@ function patchExpoModulesCore(projectRoot) {
     //    and is safe to skip.)
     if (content.includes('plugins.apply("io.github.lukmccall.pika")') &&
         !content.includes('// Patched: skip pika')) {
+      // Remove the pika import
+      content = content.replace(
+        'import io.github.lukmccall.pika.PikaGradleExtension\n',
+        '// Patched: import removed (pika plugin skipped)\n'
+      );
       // Comment out the entire applyPikaPlugin body and configurePika body
       content = content.replace(
         /internal fun Project\.applyPikaPlugin\(\) \{[\s\S]*?^\}/m,
