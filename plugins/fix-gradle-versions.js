@@ -192,14 +192,35 @@ function patchAndroidBuildGradle(projectRoot) {
     return;
   }
   const content = fs.readFileSync(buildGradle, 'utf8');
+  let updated = content;
   // Pin AGP to 8.2.1 if it's unpinned
-  const updated = content.replace(
+  updated = updated.replace(
     /classpath\(['"]com\.android\.tools\.build:gradle['"]\)/g,
     "classpath('com.android.tools.build:gradle:8.2.1')"
   );
+  // Add -Xskip-metadata-version-check to allprojects Kotlin compile args
+  // to suppress "compiled with incompatible version of Kotlin" errors
+  // (expo-modules-core pulls kotlin-stdlib 2.1.x but we compile with 1.9.x)
+  if (!updated.includes('Xskip-metadata-version-check')) {
+    // Insert a gradle.projectsEvaluated block that adds the flag to all KotlinCompile tasks
+    const skipMetadataBlock = `
+// Patched by plugins/fix-gradle-versions.js:
+// Suppress Kotlin metadata version mismatch errors (expo-modules-core
+// depends on kotlin-stdlib 2.1.x but we compile with Kotlin 1.9.x).
+allprojects {
+  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+      freeCompilerArgs += ['-Xskip-metadata-version-check']
+    }
+  }
+}
+`;
+    updated += skipMetadataBlock;
+    console.log('[fix-gradle-versions] Added -Xskip-metadata-version-check to all KotlinCompile tasks');
+  }
   if (updated !== content) {
     fs.writeFileSync(buildGradle, updated);
-    console.log('[fix-gradle-versions] Pinned AGP to 8.2.1');
+    console.log('[fix-gradle-versions] Pinned AGP to 8.2.1 + added skip-metadata-version-check');
   }
 }
 
