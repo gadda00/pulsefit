@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PulseFit",
-    "slug": "project",
+    "slug": "pulse-fit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -58,15 +58,15 @@
         "origin": false
       },
       "eas": {
-        "projectId": "9f7fd0b4-8a55-460b-bbe7-555850fc0fce"
+        "projectId": "72427137-daf5-428d-b8e2-559940d63d03"
       }
     },
-    "owner": "vhjvfcvs-team",
+    "owner": "pain12321",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/9f7fd0b4-8a55-460b-bbe7-555850fc0fce"
+      "url": "https://u.expo.dev/72427137-daf5-428d-b8e2-559940d63d03"
     }
   }
 }
